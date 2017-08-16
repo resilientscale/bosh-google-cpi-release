@@ -14,12 +14,12 @@ variable "network_project_id" {
 
 variable "region" {
     type = "string"
-    default = "us-east1"
+    default = "us-central1"
 }
 
 variable "zone" {
     type = "string"
-    default = "us-east1-d"
+    default = "us-central1-c"
 }
 
 variable "prefix" {
@@ -110,7 +110,7 @@ resource "google_compute_firewall" "intra-subnet-open" {
 // BOSH bastion host
 resource "google_compute_instance" "bosh-bastion" {
   name         = "${var.prefix}bosh-bastion"
-  machine_type = "n1-standard-1"
+  machine_type = "g1-small"
   zone         = "${var.zone}"
 
   tags = ["bosh-bastion", "internal"]
@@ -147,12 +147,10 @@ This warning will not appear when the system is ready.
 EOF
 
 apt-get update
-apt-get install -y build-essential zlibc zlib1g-dev ruby ruby-dev openssl libxslt-dev libxml2-dev libssl-dev libreadline6 libreadline6-dev libyaml-dev libsqlite3-dev sqlite3 jq git unzip
-gem install bosh_cli
-curl -o /tmp/cf.tgz https://s3.amazonaws.com/go-cli/releases/v6.20.0/cf-cli_6.20.0_linux_x86-64.tgz
-tar -zxvf /tmp/cf.tgz && mv cf /usr/bin/cf && chmod +x /usr/bin/cf
-curl -o /usr/bin/bosh-init https://s3.amazonaws.com/bosh-init-artifacts/bosh-init-0.0.96-linux-amd64
-chmod +x /usr/bin/bosh-init
+sudo apt-get install -y build-essential zlibc zlib1g-dev ruby ruby-dev openssl libxslt-dev libxml2-dev libssl-dev libreadline6 libreadline6-dev libyaml-dev libsqlite3-dev sqlite3 wget
+wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-2.0.28-linux-amd64
+chmod +x bosh-*
+mv bosh-* /usr/local/bin/bosh
 
 cat > /etc/profile.d/bosh.sh <<'EOF'
 #!/bin/bash
@@ -179,11 +177,11 @@ EOF
 
 # Clone repo
 mkdir /share
-git clone https://github.com/cloudfoundry-incubator/bosh-google-cpi-release.git /share
+git clone https://github.com/resilientscale/bosh-google-cpi-release.git /share
 chmod -R 777 /share
 
 # Install Terraform
-wget https://releases.hashicorp.com/terraform/0.7.7/terraform_0.7.7_linux_amd64.zip
+wget https://releases.hashicorp.com/terraform/0.10.1/terraform_0.10.1_linux_amd64.zip
 unzip terraform*.zip -d /usr/local/bin
 rm /etc/motd
 EOT
@@ -197,7 +195,7 @@ EOT
 // NAT server (primary)
 resource "google_compute_instance" "nat-instance-private-with-nat-primary" {
   name         = "${var.prefix}nat-instance-primary"
-  machine_type = "n1-standard-1"
+  machine_type = "g1-small"
   zone         = "${var.zone}"
   project      = "${var.network_project_id}"
 
